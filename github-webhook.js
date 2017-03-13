@@ -162,7 +162,7 @@ function prefixStream (stream, prefix) {
 
 
 function handleRules (logStream, rules, event) {
-  function executeRule (rule) {
+  function executeRule (rule, payload) {
     if (rule.executing === true) {
       rule.queued = true // we're busy working on this rule, queue up another run
       return
@@ -182,6 +182,13 @@ function handleRules (logStream, rules, event) {
       , cp
 
     eventsDebug('Matched rule for %s', eventStr)
+
+    var addEnvProperties = ['ref'];
+    for(prop in payload) {
+        if (addEnvProperties.indexOf(prop) !== -1) {
+            Object.defineProperty(process.env, 'gw_' + prop, {value: payload[prop]})
+        }
+    }
 
     cp = spawn(exec.shift(), exec, { env: process.env })
     
@@ -218,7 +225,7 @@ function handleRules (logStream, rules, event) {
     if (!matchme(event.payload, rule.match))
       return
 
-    executeRule(rule)
+    executeRule(rule, event.payload)
   })
 }
 
